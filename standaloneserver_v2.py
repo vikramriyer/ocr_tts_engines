@@ -13,8 +13,8 @@ app = Flask(__name__)
 cors = CORS(app)
 app.config['CORS_HEADERS'] = 'Content_Type'
 api = Api(app)
-XML_DIR = "/data/django_u/project_files" # need to add this manually before running on any server
-PROJECT_HOME = "/data/django_u/django_projects/code_along/ttsdaisy/ttsdaisy_v4"
+XML_DIR = "./project_files" # need to add this manually before running on any server
+PROJECT_HOME = "../ttsdaisy_v4"
 
 def get_current_timestamp():
     return datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d_%H%M%S')
