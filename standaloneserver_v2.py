@@ -26,7 +26,7 @@ def remove_white_spaces_from_book_name(bookname):
     else:
         booknames = ''.join(booknames)
     return booknames
-		
+
 
 @app.route("/run_daisy_pipeline/", methods=['POST'])
 def run_daisy_pipeline():
@@ -116,6 +116,82 @@ def get_ocr_output():
         response_dict["errors"] = errors
 
         return jsonify(response_dict)
+
+def run_cmd(cmd):
+    return_dict = {}
+    try:
+        process = sp.Popen(cmd, stdout=sp.PIPE)
+        output, error = process.communicate()
+        return_dict["error"] = error
+        return_dict["output"] = output
+        print("The command {} was run successfully. ".format(cmd))
+    except Exception as e:
+        print("exception when running the command: {}, the error message is: {}".format(
+            cmd, str(e)))
+        return_dict["error"] = e
+    return return_dict
+
+def do_tts(text, audio_path):
+    text = text.split(" ")
+    bash_cmd = []
+    bash_cmd.append("espeak")
+    bash_cmd.append(" ".join(text))
+    bash_cmd.append("-w {}".format(audio_path))
+    print("TTS cmd: ",bash_cmd)
+    response = run_cmd(bash_cmd)
+    print("TTS Conversion successful. ")
+    return response
+
+def convert_wav_to_mp3(wav_file_path, mp3_file_path):
+    # lame bash command: lame -V0 /path_to_input/file.wav /path_to_input/file.mp3
+    bash_cmd = "lame -V0 {} {}".format(wav_file_path, mp3_file_path)
+    response = run_cmd(bash_cmd.split())
+    print("conversion successful. ")
+    return response
+
+def create_dir(dir_path):
+    bash_cmd = "mkdir -p {}".format(dir_path)
+    response = run_cmd(bash_cmd.split())
+    return response
+
+def validate_error(response):
+    if response["error"] != None:
+        raise Exception("ERROR: " + response["error"])
+
+@app.route("/get_tts_output", methods=['POST'])
+def get_tts_output():
+    print("Received the call for getting TTS output. ")
+    response_dict = {}
+    if request.method == 'POST':
+        input_text = request.form['input_text']
+        print("The text to be converted to speech is: ",input_text)
+        book = request.form['book']
+        audio_number = request.form['audio_number']
+        time_stamp = get_current_timestamp()
+        try:
+            dir_path = os.path.dirname(os.path.realpath(__file__))
+            print(dir_path)
+            wav_file = "./project_files/{}_{}/speech{}.wav".format(book, time_stamp, audio_number)
+            mp3_file = "./project_files/{}_{}/speech{}.mp3".format(book, time_stamp, audio_number)
+            response = create_dir("./project_files/{}_{}/".format(book, time_stamp))
+            validate_error(response)
+            response = do_tts(input_text, wav_file)
+            validate_error(response)
+            response = convert_wav_to_mp3(wav_file, mp3_file)
+            validate_error(response)
+            print("No Errors, way to go!")
+            response_dict["audio_path"] = "./project_files/{}_{}/speech{}.mp3".format(
+                book, time_stamp, audio_number)
+            response_dict["bookname"] = book + '_' + time_stamp
+        except Exception as e:
+            print("Got an exception: " + str(e))
+            errors = str(e)
+            response_dict["errors"] = errors
+    return jsonify(response_dict)
+
+@app.route("/hello")
+def hello():
+    return jsonify({"status": "success"})
 
 if __name__ == '__main__':
     app.run()
