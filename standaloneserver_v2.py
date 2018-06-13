@@ -13,8 +13,11 @@ app = Flask(__name__)
 cors = CORS(app)
 app.config['CORS_HEADERS'] = 'Content_Type'
 api = Api(app)
-XML_DIR = "./project_files" # need to add this manually before running on any server
+XML_DIR = "/home/iiit/data/ocr_tts_engines/project_files" # need to add this manually before running on any server
 PROJECT_HOME = "../ttsdaisy_v4"
+
+session = requests.Session()
+session.trust_env = False
 
 def get_current_timestamp():
     return datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d_%H%M%S')
@@ -26,7 +29,11 @@ def remove_white_spaces_from_book_name(bookname):
     else:
         booknames = ''.join(booknames)
     return booknames
-		
+
+@app.route("/hello")
+def check_server_status():
+    print("The server is running..")
+    return jsonify({"Status": "running"})		
 
 @app.route("/run_daisy_pipeline/", methods=['POST'])
 def run_daisy_pipeline():
@@ -58,14 +65,16 @@ def run_daisy_pipeline():
             print("Ran the code")
 
             # api call to mark the book as completed
-            url = "http://127.0.0.1:8000/api/update_daisy_xml/"
+            url = "http://10.2.16.111:8000/api/update_daisy_xml/"
+            #url = "http://127.0.0.1:8000/api/update_daisy_xml/"
             payload = {"bookid": bookid, "data": xmldata}
-            r = requests.post(url, data=payload)
+            r = session.post(url, data=payload)
             print(r)
 
             # create a zip of the downloadable
-            url = "http://127.0.0.1:8000/download/?title=" + title
-            r = requests.get(url)
+            #url = "http://127.0.0.1:8000/download/?title=" + title
+            url = "http://10.2.16.111:8000/download/?title=" + title
+            r = session.get(url)
             print(r)
         except Exception as e:
             print("Got an exception: " + str(e))
