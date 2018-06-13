@@ -1,0 +1,8 @@
+h1: '{http://www.daisy.org/z3986/2005/dtbook/}h1'
+p: '{http://www.daisy.org/z3986/2005/dtbook/}p'
+pagenum: '{http://www.daisy.org/z3986/2005/dtbook/}pagenum'
+book: '{http://www.daisy.org/z3986/2005/dtbook/}book'
+head: '{http://www.daisy.org/z3986/2005/dtbook/}head'
+level1: '{http://www.daisy.org/z3986/2005/dtbook/}level1'
+bodymatter: '{http://www.daisy.org/z3986/2005/dtbook/}bodymatter'
+frontmatter: '{http://www.daisy.org/z3986/2005/dtbook/}frontmatter'
