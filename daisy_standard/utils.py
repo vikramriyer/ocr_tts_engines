@@ -2,7 +2,7 @@ import random
 import datetime
 import time
 import subprocess as sp
-from xml.sax.saxutils import escape, unescape
+# from xml.sax.saxutils import escape, unescape
 # import xml.etree.ElementTree as ET
 import re
 import pdb
@@ -34,7 +34,7 @@ def clean_xml(tagged_xml, reverse=False):
     else:
         for k, v in html_escape_table.items():
             tagged_xml = tagged_xml.replace(k, v)
-        tagged_xml = re.sub(r'<\s', "&lt; ", tagged_xml)
+        tagged_xml = re.sub(r'<[^A-Za-z?!]', "&lt; ", tagged_xml)
         return tagged_xml
 
 
