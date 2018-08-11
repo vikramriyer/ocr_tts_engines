@@ -1,7 +1,5 @@
 from yaml import load
-import xml.etree.ElementTree as ET
 from lxml import etree
-import datetime
 
 from html import make_html
 from audio import make_audio
@@ -9,7 +7,16 @@ from smil import make_smil
 from ncc import NCC
 from utils import get_current_timestamp, create_dir, clean_xml
 import re
-import pdb
+# import pdb
+
+
+class BookPage:
+    def __init__(self, pagenum):
+        self.content = []
+        self.pagenum = pagenum
+
+    def add(self, item):
+        self.content.append(item)
 
 
 class DaisyBook:
@@ -19,63 +26,79 @@ class DaisyBook:
         self.tag_config = load(open(yaml_file))
         if xml_file:
             self.read(xml_file)
-        self.smil_headers = []
         self.elapsed_time = 0
+        self.pages = []
+        self.title = ""
+        self.num_pages = 0
+        self.smil_headers = []
         self.audio_files = []
         self.html_files = []
 
     def read(self, input_file):
-        print("Reading data from XML file and parsing...")
+        """
+        Read the input file and extract all book pages from Tagged XML.
+        Parameters:
+            input_file: [class String] Path to the input file.
+        """
         self.tagged_xml = open(input_file).read()
         self.tagged_xml = clean_xml(self.tagged_xml)
-        self.title, self.pages = self.parse_xml()
-        pdb.set_trace()
+        self.parse_xml()
         self.title = re.sub(r'[^0-9a-zA-Z_-]', "", self.title)
+
+    def extract_content(self, root):
+        """
+        Extract the book contents from the XML Tree
+        Parameters:
+            root: [class lxml.etree.ElementTree] Root node of XML tree.
+        """
+        book = root.findall(self.tag_config['book'])[0]
+        frontmatter = book.findall(self.tag_config['frontmatter'])[0]
+        self.title = frontmatter.findall(self.tag_config['doctitle'])[0].text
+        bodymatter = book.findall(self.tag_config['bodymatter'])[0]
+        level1 = bodymatter.findall(self.tag_config['level1'])[0]
+        return level1.getchildren()
 
     def parse_xml(self):
         """Parse tagged XML."""
-        parser = etree.XMLParser(encoding='UTF-8', recover=True)
-        root = etree.fromstring(self.tagged_xml.encode(), parser=parser)
-        book = root.findall(self.tag_config['book'])[0]
-        frontmatter = book.findall(self.tag_config['frontmatter'])[0]
-        title = frontmatter.findall(self.tag_config['doctitle'])[0].text
-        bodymatter = book.findall(self.tag_config['bodymatter'])[0]
-        level1 = bodymatter.findall(self.tag_config['level1'])[0]
 
-        content = level1.getchildren()
-        pdb.set_trace()
-        pages = []
-        page = []
-        pid = 0
+        parser = etree.XMLParser(encoding='UTF-8', ns_clean=True, recover=True)
+        root = etree.fromstring(self.tagged_xml.encode(), parser=parser)
+        content = self.extract_content(root)
+
+        page = BookPage(self.num_pages)
         for tag in content:
             if tag.tag == self.tag_config["pagenum"]:
-                print("Page number {}".format(pid))
-                pid += 1
-                pages.append(page)
-                page = []
+                print("Page number {}".format(self.num_pages))
+                self.num_pages += 1
+                self.pages.append(page)
+                page = BookPage(self.num_pages)
             else:
-                page.append(tag)
-        pages.append(page)
-        return title, pages[1::]
+                page.add(tag)
+        self.pages.append(page)
 
     def build(self):
-        """Create daisy book."""
+        """Build daisy book."""
+
         print("Building DaisyBook...")
         self.folder_name = self.title + '_' + get_current_timestamp() + '/'
         create_dir(self.output_folder + self.folder_name)
         print("All files stored in ", self.output_folder+self.folder_name)
 
         self.elapsed_time = 0
+
         print("Processing Pages....")
-        for i, page in enumerate(self.pages):
-            print("----Generating [HTML] file; Pg {}".format(i))
-            html_file = make_html(page, self.title, i, self.output_folder+self.folder_name,
+        for page in enumerate(self.pages):
+
+            print("----Generating [HTML] file; Pg {}".format(page.pagenum))
+            html_file = make_html(page, self.title, self.output_folder+self.folder_name,
                                   self.tag_config)
-            print("----Generating [MP3] file; Pg {}".format(i))
-            audio_lengths, audio_file = make_audio(page, self.title, i,
+
+            print("----Generating [MP3] file; Pg {}".format(page.pagenum))
+            audio_lengths, audio_file = make_audio(page, self.title,
                                                    self.output_folder+self.folder_name)
-            print("----Generating [SMIL] file; Pg {}".format(i))
-            smil_header = make_smil(page, i, audio_lengths, self.title, self.elapsed_time,
+
+            print("----Generating [SMIL] file; Pg {}".format(page.pagenum))
+            smil_header = make_smil(page, audio_lengths, self.title, self.elapsed_time,
                                     self.output_folder+self.folder_name, self.tag_config)
 
             self.audio_files.append(audio_file)
@@ -87,6 +110,7 @@ class DaisyBook:
         self.make_ncc()
 
     def make_ncc(self):
+        """Create NCC index file for DTB player."""
         ncc_file = NCC(title=self.title, lang="en", num_pages=len(self.pages), total_time=self.elapsed_time)
         for i, page in enumerate(self.pages):
             smil_file = self.title.lower() + "_pg{}.smil".format(i)
@@ -96,11 +120,11 @@ class DaisyBook:
                 ncc_file.add_p_entry(i, smil_file)
 
         self.ncc_file = ncc_file
-        self.ncc_file.write(self.output_folder + self.folder_name + "ncc.html")
+        self.ncc_file.write(self.output_folder + self.folder_name + self.title + "_ncc.html")
 
 
 if __name__ == "__main__":
     from settings import output_folder, yaml_config
-    Book = "sample.xml"
+    Book = "samples/sample.xml"
     Dtb = DaisyBook(yaml_config, output_folder, Book)
     Dtb.build()

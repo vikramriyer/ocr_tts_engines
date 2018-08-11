@@ -30,11 +30,18 @@ class HTMLPage():
         f.close()
 
 
-def make_html(page, title, page_id, directory, tag_config):
-    """Make HTML page for a given parsed page with ID."""
-    doc_name = title.lower() + '_pg' + str(page_id) + ".html"
+def make_html(page, title, directory, tag_config):
+    """
+    Make HTML page for a given parsed page with ID.
+    Parameters:
+        page : [class BookPage] Page of the book.
+        title: [class String] Title of the book.
+        directory: [class String] Directory path for output.
+        tag_config: [class dict] Dictionary of valid DTB XML tags.
+    """
+    doc_name = title.lower() + '_pg' + str(page.pagenum) + ".html"
     html_page = HTMLPage()
-    for i, element in enumerate(page):
+    for i, element in enumerate(page.content):
         if element.tag == tag_config["h1"]:
             html_page.add_h_tag(clean_content(element.text), i)
         elif element.tag == tag_config["p"]:

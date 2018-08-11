@@ -65,7 +65,6 @@ def run_daisy_pipeline():
         with open(filename, 'w') as xml_file:
             xml_file.write(xmldata)
         errors = ""
-        pdb.set_trace()
 
         # run the bash script
         try:

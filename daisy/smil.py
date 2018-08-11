@@ -47,16 +47,16 @@ class SMIL():
         f.close()
 
 
-def make_smil(page, page_id, audio_lengths, title, elapsed_time, directory, tag_config):
-    html_page = title.lower() + '_pg' + str(page_id) + ".html"
-    mp3_file = title.lower() + '_pg' + str(page_id) + ".mp3"
-    doc_name = title.lower() + '_pg' + str(page_id) + ".smil"
+def make_smil(page, audio_lengths, title, elapsed_time, directory, tag_config):
+    html_page = title.lower() + '_pg' + str(page.pagenum) + ".html"
+    mp3_file = title.lower() + '_pg' + str(page.pagenum) + ".mp3"
+    doc_name = title.lower() + '_pg' + str(page.pagenum) + ".smil"
 
     smil_page = SMIL(title, elapsed_time, sum(audio_lengths))
-    for i, element in enumerate(page):
+    for i, element in enumerate(page.content):
         if element.tag == tag_config["h1"]:
-            smil_page.add_h_element(page_id, i, html_page, mp3_file, audio_lengths[i])
+            smil_page.add_h_element(page.pagenum, i, html_page, mp3_file, audio_lengths[i])
         elif element.tag == tag_config["p"]:
-            smil_page.add_p_element(page_id, i, html_page, mp3_file, audio_lengths[i])
+            smil_page.add_p_element(page.pagenum, i, html_page, mp3_file, audio_lengths[i])
 
     smil_page.write(directory + doc_name)
