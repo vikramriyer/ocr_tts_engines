@@ -1,0 +1,3 @@
+This is some sample text that is being used to test the working of the Mary TTS module.
+
+We will not be using this text for generating audiobooks or any other information.

@@ -1,27 +1,34 @@
-from yaml import load
+"""Daisy book code."""
 from lxml import etree
+from yaml import load
 
-from html import make_html
 from audio import make_audio
-from smil import make_smil
+from html import make_html
 from ncc import NCC
+from smil import make_smil
 from utils import get_current_timestamp, create_dir, clean_xml
 import re
 # import pdb
 
 
-class BookPage:
+class BookPage(object):
+    """Book page class."""
+
     def __init__(self, pagenum):
+        """Init."""
         self.content = []
         self.pagenum = pagenum
 
     def add(self, item):
+        """Add new item to page."""
         self.content.append(item)
 
 
-class DaisyBook:
+class DaisyBook(object):
     """Daisy Audio Book Class."""
+
     def __init__(self, yaml_file, output_dir, xml_file=None):
+        """Init."""
         self.output_folder = output_dir
         self.tag_config = load(open(yaml_file))
         if xml_file:
@@ -35,10 +42,11 @@ class DaisyBook:
         self.html_files = []
 
     def read(self, input_file):
-        """
-        Read the input file and extract all book pages from Tagged XML.
+        """Read the input file and extract all book pages from Tagged XML.
+
         Parameters:
             input_file: [class String] Path to the input file.
+
         """
         self.tagged_xml = open(input_file).read()
         self.tagged_xml = clean_xml(self.tagged_xml)
@@ -46,10 +54,11 @@ class DaisyBook:
         self.title = re.sub(r'[^0-9a-zA-Z_-]', "", self.title)
 
     def extract_content(self, root):
-        """
-        Extract the book contents from the XML Tree
+        """Extract the book contents from the XML Tree.
+
         Parameters:
             root: [class lxml.etree.ElementTree] Root node of XML tree.
+
         """
         book = root.findall(self.tag_config['book'])[0]
         frontmatter = book.findall(self.tag_config['frontmatter'])[0]
@@ -60,7 +69,6 @@ class DaisyBook:
 
     def parse_xml(self):
         """Parse tagged XML."""
-
         parser = etree.XMLParser(encoding='UTF-8', ns_clean=True, recover=True)
         root = etree.fromstring(self.tagged_xml.encode(), parser=parser)
         content = self.extract_content(root)
@@ -78,7 +86,6 @@ class DaisyBook:
 
     def build(self):
         """Build daisy book."""
-
         print("Building DaisyBook...")
         self.folder_name = self.title + '_' + get_current_timestamp() + '/'
         create_dir(self.output_folder + self.folder_name)
