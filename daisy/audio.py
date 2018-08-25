@@ -3,12 +3,16 @@ import contextlib
 import httplib2
 # from mutagen.mp3 import MP3
 import wave
+import librosa
 
 from urllib.parse import urlencode
 
 from utils import cleanup
 from utils import random_alpha_numeric_generator
 from utils import run_cmd
+# import pdb
+
+h_mary = httplib2.Http()
 
 
 class TTSEngine(object):
@@ -34,10 +38,10 @@ class TTSEngine(object):
     def make_audio(self, page, title, directory):
         """Generate audio files."""
         rand = random_alpha_numeric_generator()
-        audio_name = title.lower() + '_pg' + str(page.pagenum) + ".mp3"
-        tempfile = directory + rand + ".txt"
-        output_file = directory + audio_name
+        output_file = directory + title.lower() + '_pg' + str(page.pagenum)
+
         self.audio_files = []
+        self.audio_lengths = []
 
         for i, element in enumerate(page.content):
             with open(directory + rand + str(i), "w") as f:
@@ -45,25 +49,22 @@ class TTSEngine(object):
                 f.close()
             self.do_tts(directory + rand + str(i),
                         directory + rand + str(i) + ".wav")
+
             self.audio_files.append(directory + rand + str(i))
 
-        self.audio_lengths = self.get_lengths()
-        self.convert_wav_to_mp3()
+        self.get_lengths()
 
-        with open(tempfile, "w") as f:
-            for file_ in self.audio_files:
-                f.write("file '{}.mp3'\n".format(file_))
-            f.close()
-
-        self.merge_audio_files(output_file, tempfile)
+        self.merge_audio_files(directory + rand)
+        self.convert_wav_to_mp3(directory + rand, output_file)
         cleanup(directory, rand)
 
         return self.audio_lengths, self.audio_files
 
-    def merge_audio_files(self, output_file, tempfile):
+    def merge_audio_files(self, output_file):
         """Merge audio files."""
-        # command = "ffmpeg -f concat -safe 0 -i {} -c copy {}".format(tempfile, output_file)
-        command = "sox "
+        # cd  command = "ffmpeg -f concat -safe 0 -i {} -c copy {}".format(tempfile, output_file)
+        command = "sox " + " ".join([x + ".wav" for x in self.audio_files]) + \
+                  " " + output_file + ".wav"
         response = run_cmd(command.split())
         return response
 
@@ -74,23 +75,17 @@ class TTSEngine(object):
 
     def get_lengths(self):
         """Find lenght of MP3 file."""
-        lengths = []
         # for audio_file in self.audio_files:
         #     audio = MP3(audio_file + ".mp3")
         #     lengths.append(audio.info.length)
         for audio_file in self.audio_files:
-            with contextlib.closing(wave.open(audio_file, 'r')) as f:
-                frames = f.getnframes()
-                rate = f.getframerate()
-                duration = frames / float(rate)
-                lengths.append(duration)
-        return lengths
+            duration = librosa.get_duration(filename=audio_file+".wav")
+            self.audio_lengths.append(duration)
 
-    def convert_wav_to_mp3(self):
+    def convert_wav_to_mp3(self, input_file, audio_file):
         """Convert .wav to .mp3."""
-        for audio_file in self.audio_files:
-            bash_cmd = "lame -V0 {}.wav {}.mp3".format(audio_file, audio_file)
-            response = run_cmd(bash_cmd.split())
+        bash_cmd = "lame -V0 {}.wav {}.mp3".format(input_file, audio_file)
+        response = run_cmd(bash_cmd.split())
         return response
 
 
@@ -109,6 +104,7 @@ def espeaktts(text_path, audio_path):
 def marytts(text, audio_path):
     """Mary TTS caller."""
     # Mary server info
+    global h_mary
     mary_host = "localhost"
     mary_port = "59125"
 
@@ -126,8 +122,6 @@ def marytts(text, audio_path):
     query = urlencode(query_hash)
     # print("query = \"http://%s:%s/process?%s\"" % (mary_host, mary_port, query))
 
-    # Run the query to mary http server
-    h_mary = httplib2.Http()
     try:
         resp, content = h_mary.request("http://%s:%s/process?" % (mary_host, mary_port), "POST", query)
     except ConnectionRefusedError:
@@ -140,6 +134,9 @@ def marytts(text, audio_path):
         f = open(audio_path, "wb")
         f.write(content)
         f.close()
+        return "Done"
+    else:
+        raise OSError("No output generated")
 
 
 if __name__ == "__main__":

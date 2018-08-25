@@ -2,13 +2,14 @@
 from lxml import etree
 from yaml import load
 
-from audio import make_audio
+from audio import TTSEngine
+from audio import espeaktts, marytts
 from html import make_html
 from ncc import NCC
 from smil import make_smil
 from utils import get_current_timestamp, create_dir, clean_xml
 import re
-# import pdb
+import pdb
 
 
 class BookPage(object):
@@ -21,25 +22,27 @@ class BookPage(object):
 
     def add(self, item):
         """Add new item to page."""
-        self.content.append(item)
+        if item.text.strip():
+            self.content.append(item)
 
 
 class DaisyBook(object):
     """Daisy Audio Book Class."""
 
-    def __init__(self, yaml_file, output_dir, xml_file=None):
+    def __init__(self, yaml_file, output_dir, tts, xml_file=None):
         """Init."""
         self.output_folder = output_dir
         self.tag_config = load(open(yaml_file))
-        if xml_file:
-            self.read(xml_file)
-        self.elapsed_time = 0
         self.pages = []
         self.title = ""
         self.num_pages = 0
+        self.elapsed_time = 0
         self.smil_headers = []
         self.audio_files = []
         self.html_files = []
+        self.tts = tts
+        if xml_file:
+            self.read(xml_file)
 
     def read(self, input_file):
         """Read the input file and extract all book pages from Tagged XML.
@@ -48,6 +51,7 @@ class DaisyBook(object):
             input_file: [class String] Path to the input file.
 
         """
+        print("Parsing xml file : {}".format(input_file))
         self.tagged_xml = open(input_file).read()
         self.tagged_xml = clean_xml(self.tagged_xml)
         self.parse_xml()
@@ -72,17 +76,16 @@ class DaisyBook(object):
         parser = etree.XMLParser(encoding='UTF-8', ns_clean=True, recover=True)
         root = etree.fromstring(self.tagged_xml.encode(), parser=parser)
         content = self.extract_content(root)
-
         page = BookPage(self.num_pages)
         for tag in content:
             if tag.tag == self.tag_config["pagenum"]:
-                print("Page number {}".format(self.num_pages))
                 self.num_pages += 1
                 self.pages.append(page)
                 page = BookPage(self.num_pages)
             else:
                 page.add(tag)
         self.pages.append(page)
+        self.pages = self.pages[1::]
 
     def build(self):
         """Build daisy book."""
@@ -92,19 +95,23 @@ class DaisyBook(object):
         print("All files stored in ", self.output_folder+self.folder_name)
 
         self.elapsed_time = 0
-
+        # pdb.set_trace()
         print("Processing Pages....")
-        for page in enumerate(self.pages):
+        for page in self.pages:
+            if len(page.content) == 0:
+                continue
 
             print("----Generating [HTML] file; Pg {}".format(page.pagenum))
             html_file = make_html(page, self.title, self.output_folder+self.folder_name,
                                   self.tag_config)
 
             print("----Generating [MP3] file; Pg {}".format(page.pagenum))
-            audio_lengths, audio_file = make_audio(page, self.title,
-                                                   self.output_folder+self.folder_name)
+            audio_lengths, audio_file = self.tts.make_audio(page, self.title,
+                                                            self.output_folder+self.folder_name)
 
+            # pdb.set_trace()
             print("----Generating [SMIL] file; Pg {}".format(page.pagenum))
+
             smil_header = make_smil(page, audio_lengths, self.title, self.elapsed_time,
                                     self.output_folder+self.folder_name, self.tag_config)
 
@@ -119,19 +126,23 @@ class DaisyBook(object):
     def make_ncc(self):
         """Create NCC index file for DTB player."""
         ncc_file = NCC(title=self.title, lang="en", num_pages=len(self.pages), total_time=self.elapsed_time)
-        for i, page in enumerate(self.pages):
-            smil_file = self.title.lower() + "_pg{}.smil".format(i)
-            if page[0].tag == self.tag_config["h1"]:
-                ncc_file.add_h_entry(i, smil_file)
-            elif page[0].tag == self.tag_config["p"]:
-                ncc_file.add_p_entry(i, smil_file)
+        for page in self.pages:
+            if len(page.content) == 0:
+                continue
+
+            smil_file = self.title.lower() + "_pg{}.smil".format(page.pagenum)
+            if page.content[0].tag == self.tag_config["h1"]:
+                ncc_file.add_h_entry(page.pagenum, smil_file)
+            elif page.content[0].tag == self.tag_config["p"]:
+                ncc_file.add_p_entry(page.pagenum, smil_file)
 
         self.ncc_file = ncc_file
-        self.ncc_file.write(self.output_folder + self.folder_name + self.title + "_ncc.html")
+        self.ncc_file.write(self.output_folder + self.folder_name + "ncc.html")
 
 
 if __name__ == "__main__":
     from settings import output_folder, yaml_config
-    Book = "samples/sample.xml"
-    Dtb = DaisyBook(yaml_config, output_folder, Book)
+    Book = "/home/chris/annotated_xml/1done.xml"
+    tts = TTSEngine(marytts)
+    Dtb = DaisyBook(yaml_config, output_folder, tts, Book)
     Dtb.build()
