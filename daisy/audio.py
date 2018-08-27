@@ -10,7 +10,8 @@ from urllib.parse import urlencode
 from utils import cleanup
 from utils import random_alpha_numeric_generator
 from utils import run_cmd
-# import pdb
+from text import clean_str
+import pdb
 
 h_mary = httplib2.Http()
 
@@ -109,7 +110,7 @@ def marytts(text, audio_path):
     mary_port = "59125"
 
     # Input text
-    input_text = open(text).read()
+    input_text = clean_str(open(text).read().strip())
 
     # Build the query
     query_hash = {"INPUT_TEXT": input_text,

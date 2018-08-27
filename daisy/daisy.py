@@ -95,7 +95,6 @@ class DaisyBook(object):
         print("All files stored in ", self.output_folder+self.folder_name)
 
         self.elapsed_time = 0
-        # pdb.set_trace()
         print("Processing Pages....")
         for page in self.pages:
             if len(page.content) == 0:
@@ -142,7 +141,7 @@ class DaisyBook(object):
 
 if __name__ == "__main__":
     from settings import output_folder, yaml_config
-    Book = "/home/chris/annotated_xml/1done.xml"
+    Book = "/home/chris/annotated_xml/4done.xml"
     tts = TTSEngine(marytts)
     Dtb = DaisyBook(yaml_config, output_folder, tts, Book)
     Dtb.build()
