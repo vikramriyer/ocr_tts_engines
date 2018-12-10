@@ -102,7 +102,7 @@ def espeaktts(text_path, audio_path):
     return response
 
 
-def marytts(text, audio_path):
+def maryttsenglish(text, audio_path):
     """Mary TTS caller."""
     # Mary server info
     global h_mary
@@ -117,6 +117,44 @@ def marytts(text, audio_path):
                   "INPUT_TYPE": "TEXT",
                   "LOCALE": "en_US",
                   "VOICE": "cmu-slt-hsmm",
+                  "OUTPUT_TYPE": "AUDIO",
+                  "AUDIO": "WAVE",
+                  }
+    query = urlencode(query_hash)
+    # print("query = \"http://%s:%s/process?%s\"" % (mary_host, mary_port, query))
+
+    try:
+        resp, content = h_mary.request("http://%s:%s/process?" % (mary_host, mary_port), "POST", query)
+    except ConnectionRefusedError:
+        print("MaryTTS is offline, please start the server on {}:{}".format(mary_host, mary_port))
+        return None
+
+    #  Decode the wav file or raise an exception if no wav files
+    if (resp["content-type"] == "audio/x-wav"):
+        # Write the wav file
+        f = open(audio_path, "wb")
+        f.write(content)
+        f.close()
+        return "Done"
+    else:
+        raise OSError("No output generated")
+
+
+def maryttstelugu(text, audio_path):
+    """Mary TTS caller."""
+    # Mary server info
+    global h_mary
+    mary_host = "localhost"
+    mary_port = "59125"
+
+    # Input text
+    input_text = open(text).read().strip()
+
+    # Build the query
+    query_hash = {"INPUT_TEXT": input_text,
+                  "INPUT_TYPE": "TEXT",
+                  "LOCALE": "te",
+                  "VOICE": "cmu-nk-hsmm",
                   "OUTPUT_TYPE": "AUDIO",
                   "AUDIO": "WAVE",
                   }

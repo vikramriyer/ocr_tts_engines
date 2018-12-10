@@ -3,7 +3,7 @@ from lxml import etree
 from yaml import load
 
 from audio import TTSEngine
-from audio import espeaktts, marytts
+from audio import espeaktts, maryttsenglish, maryttstelugu
 from html import make_html
 from ncc import NCC
 from smil import make_smil
@@ -141,7 +141,7 @@ class DaisyBook(object):
 
 if __name__ == "__main__":
     from settings import output_folder, yaml_config
-    Book = "/home/chris/annotated_xml/4done.xml"
-    tts = TTSEngine(marytts)
+    Book = "/home/chris/audio_books/Telugu_Five.xml"
+    tts = TTSEngine(maryttstelugu)
     Dtb = DaisyBook(yaml_config, output_folder, tts, Book)
     Dtb.build()
