@@ -141,7 +141,12 @@ class DaisyBook(object):
 
 if __name__ == "__main__":
     from settings import output_folder, yaml_config
+<<<<<<< HEAD
     Book = "/home/chris/audio_books/Telugu_Five.xml"
     tts = TTSEngine(maryttstelugu)
+=======
+    Book = "test.xml"
+    tts = TTSEngine(marytts)
+>>>>>>> f8765ea19ecb92c0519cf85bd61ea2eb88247302
     Dtb = DaisyBook(yaml_config, output_folder, tts, Book)
     Dtb.build()
