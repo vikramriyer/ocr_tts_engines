@@ -133,7 +133,7 @@ class DaisyBook(object):
             if page.content[0].tag == self.tag_config["h1"]:
                 ncc_file.add_h_entry(page.pagenum, smil_file)
             elif page.content[0].tag == self.tag_config["p"]:
-                ncc_file.add_p_entry(page.pagenum, smil_file)
+                ncc_file.add_h_entry(page.pagenum, smil_file)
 
         self.ncc_file = ncc_file
         self.ncc_file.write(self.output_folder + self.folder_name + "ncc.html")
@@ -141,7 +141,7 @@ class DaisyBook(object):
 
 if __name__ == "__main__":
     from settings import output_folder, yaml_config
-    Book = "/home/chris/audio_books/Telugu_Five.xml"
+    Book = "/home/chrizandr/demo/Satavahanas_Dynasty_Ancient_Telangana.xml"
     tts = TTSEngine(maryttstelugu)
     Dtb = DaisyBook(yaml_config, output_folder, tts, Book)
     Dtb.build()

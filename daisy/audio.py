@@ -181,4 +181,4 @@ def maryttstelugu(text, audio_path):
 if __name__ == "__main__":
     sample_text = "samples/test.txt"
     output = "samples/test.wav"
-    marytts(sample_text, output)
+    maryttstelugu(sample_text, output)
