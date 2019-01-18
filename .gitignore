@@ -1,0 +1,6 @@
+project_files/
+__pycache__/
+*.pyc
+output/*
+
+daisy/output/*
